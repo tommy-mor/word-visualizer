@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Embeddings with Plotly</title>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <span> x1, x2, y1, y2, z1, z2 </span>
+  <br/>
+  <input type="text" id="textInput"
+		 value="life, death, awake, asleep, day, night"
+		 placeholder="Enter words to highlight separated by commas"
+		 style="width:500px; left:50%">
+
+    <div id="not-found"></div>
+    <div id="plotly-graph"></div>
+
+    <script>
+        // Load the JSON data
+	  var plot;
+	  var words;
+	  var embeddings;
+	  var selected;
+
+	  var selectedtrace;
+	  var trace;
+	  var layout;
+
+	  var haswords = [];
+
+	  function onInput() {
+		  const inputText = textInput.value;
+		  const selectedwords = inputText.split(',').map(word => word.trim());
+		  
+		  var x = [];
+		  var y = [];
+		  var z = [];
+		  var text = [];
+
+		  var notfounds = [];
+		  
+		  var fetches = selectedwords.map((word, index) => {
+			  if(!haswords.includes(word)) {
+				  return fetch("/has_word?word=" + word)
+					  .then(resp => resp.json())
+					  .then(resp => {
+						  if(resp.found) haswords.push(word);
+						  else notfounds.push(word);
+
+						  return true;
+					  });
+			  } else {
+				  return Promise.resolve();
+			  }
+		  });
+		  Promise.all(fetches).then(_ => {
+			  if(notfounds.length != 0) {
+				  document.getElementById("not-found").innerHTML
+					  = "words not found sorry: " + notfounds;
+			  } else {
+				  document.getElementById("not-found").innerHTML = "";
+			  }
+		  })
+
+
+		  selectedtrace = {
+			  x: x,
+			  y: y,
+			  z: z,
+			  text: text,
+			  mode: 'markers+text',
+			  type: 'scatter3d',
+			  marker: {
+				  size: 10,
+				  opacity: 1,
+				  color: "red",
+			  }
+		  };
+		  Plotly.react(plot, [trace, selectedtrace], layout);
+	  }
+
+	  textInput.addEventListener('input', onInput );
+	  
+	  
+	  
+
+	  function createPlot() {
+		  // Extract data for the plot (assuming a simple format)
+		  // Create a trace
+		  console.log(embeddings[0])
+
+		  trace = {
+			  x: embeddings.map(entry => entry[0]),
+			  y: embeddings.map(entry => entry[1]),
+			  z: embeddings.map(entry => entry[2]),
+			  mode: 'markers',
+			  text: words,
+			  type: 'scatter3d',
+			  marker: {
+				  size: 2,
+				  opacity: 0.9,
+				  color: "blue",
+			  }
+		  };
+
+		  layout = {
+			  title: 'Word Embeddings Plot',
+			  xaxis: { title: 'Dimension 1' },
+			  yaxis: { title: 'Dimension 2' },
+			  zaxis: { title: 'Dimension 3' },
+			  height: 800,
+		  };
+
+		  // Create a Plotly graph
+		  return Plotly.newPlot('plotly-graph', [trace], layout);
+	  };
+
+	  createPlot().then(x => {
+		  plot = x; onInput();
+	  });
+	  
+	</script>
+</body>
+</html>

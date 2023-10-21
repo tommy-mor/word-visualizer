@@ -123,6 +123,11 @@ def embeddings_json():
 
     return {"xs": xs, "ys": ys, "zs": zs, "words": words.tolist()}
 
+@app.route("/")
+def index():
+    with open("change.html") as f:
+        return f.read()
+    
 @app.route('/has_word')
 def has_word():
     word = request.args.get('word')
