@@ -52,6 +52,16 @@ def find_embedding(word):
     index = np.where(words == word)[0][0]
     return embeddings[index]
 
+from sklearn.neighbors import KNeighborsClassifier
+
+def find_neighbors(k, word):
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(embeddings, words)
+    _, idxs = knn.kneighbors([find_embedding(word)], k)
+    return words[idxs[0]]
+
+
+
 from flask import Flask, jsonify, request
 app = Flask(__name__)
 
@@ -97,4 +107,4 @@ def has_word():
     return {"found":  found}
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
