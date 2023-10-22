@@ -55,10 +55,11 @@ def find_embedding(word):
 from sklearn.neighbors import KNeighborsClassifier
 
 def find_neighbors(k, word):
+    print('kword', k, word)
     knn = KNeighborsClassifier(n_neighbors=k)
     knn.fit(embeddings, words)
     _, idxs = knn.kneighbors([find_embedding(word)], k)
-    return words[idxs[0]]
+    return idxs[0]
 
 
 
@@ -67,12 +68,38 @@ app = Flask(__name__)
 
 @app.route('/embeddings')
 def embeddings_json():
+    global words
     x1 = request.args.get('x1')
     x2 = request.args.get('x2')
     y1 = request.args.get('y1')
     y2 = request.args.get('y2')
     z1 = request.args.get('z1')
     z2 = request.args.get('z2')
+
+    k = request.args.get('k')
+    word = request.args.get('word')
+    try:
+        find_embedding(word).tolist()
+    except:
+        return {"not_found": word}
+
+    if k is not None:
+        idxs = find_neighbors(int(k), word)
+        # extend idxs with the word itself
+        idxs = np.append(idxs, np.where(words == word)[0][0])
+        #extend idxs with the words x1, x2, y1, y2, z1, z2
+        idxs = np.append(idxs, np.where(words == x1)[0][0])
+        idxs = np.append(idxs, np.where(words == x2)[0][0])
+        idxs = np.append(idxs, np.where(words == y1)[0][0])
+        idxs = np.append(idxs, np.where(words == y2)[0][0])
+        idxs = np.append(idxs, np.where(words == z1)[0][0])
+        idxs = np.append(idxs, np.where(words == z2)[0][0])
+        
+        xs = np.dot(embeddings[idxs], find_embedding(x1) - find_embedding(x2)).tolist()
+        ys = np.dot(embeddings[idxs], find_embedding(y1) - find_embedding(y2)).tolist()
+        zs = np.dot(embeddings[idxs], find_embedding(z1) - find_embedding(z2)).tolist()
+        smallwords = words[idxs].tolist()
+        return {"xs": xs, "ys": ys, "zs": zs, "words": smallwords}
 
 
     x = find_embedding(x1) - find_embedding(x2)

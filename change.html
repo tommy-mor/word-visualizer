@@ -12,6 +12,12 @@
 		 value="life, death, awake, asleep, day, night"
 		 placeholder="Enter words to highlight separated by commas"
 		 style="width:500px; left:50%">
+  <br/>
+  <span> include the k </span> <input type="text" id="kInput"
+									  value="10" style="width:50px">
+
+  <span> closest words to </span> <input type="text" id="wordInput"
+										 value="life" style="width:100px">
 
     <div id="not-found"></div>
     <div id="plotly-graph"></div>
@@ -55,14 +61,22 @@
 		  };
 
 		  // Create a Plotly graph
-		  return Plotly.newPlot('plotly-graph', [trace], layout);
+		  var plot = document.getElementById('plotly-graph');
+		  if(plot.data != undefined) {
+			  Plotly.deleteTraces('plotly-graph', 0);
+			  Plotly.addTraces('plotly-graph', [trace]);
+		  } else {
+			  Plotly.newPlot('plotly-graph', [trace], layout);
+		  }
 	  };
 
 	  function onInput() {
 		  const inputText = textInput.value;
-		  const selectedwords = inputText.split(',').map(word => word.trim());
+		  var selectedwords = inputText.split(',').map(word => word.trim());
 		  
+
 		  var notfounds = [];
+		  selectedwords = [...selectedwords];
 		  
 		  var fetches = selectedwords.map((word, index) => {
 			  if(!haswords.includes(word)) {
@@ -88,17 +102,28 @@
 			  return Promise.resolve();
 		  }).then(_ => {
 
+			  var k = document.getElementById("kInput").value;
+			  var word = document.getElementById("wordInput").value;
+
 			  if(selectedwords.length == 6 && notfounds.length == 0) {
 				  return fetch('/embeddings?x1=' + selectedwords[0] +
-						   '&x2=' + selectedwords[1] +
-						   '&y1=' + selectedwords[2] +
-						   '&y2=' + selectedwords[3] +
-						   '&z1=' + selectedwords[4] +
-						   '&z2=' + selectedwords[5])
+							   '&x2=' + selectedwords[1] +
+							   '&y1=' + selectedwords[2] +
+							   '&y2=' + selectedwords[3] +
+							   '&z1=' + selectedwords[4] +
+							   '&z2=' + selectedwords[5] +
+							   '&k=' + k +
+							   '&word=' + word)
 				  .then(resp => resp.json())
 				  .then(resp => {
 					  console.log(resp);
-					  createPlot(resp.xs, resp.ys, resp.zs, resp.words);
+					  if(resp.not_found) {
+						  document.getElementById("not-found").innerHTML
+							  = "words not found sorry: " + resp.not_found;
+					  } else {
+						  document.getElementById("not-found").innerHTML = "";
+						  createPlot(resp.xs, resp.ys, resp.zs, resp.words);
+					  }
 				  });
 			  } else {
 				  document.getElementById("plotly-graph").innerHTML = "";
@@ -109,6 +134,9 @@
 	  }
 
 	  textInput.addEventListener('input', onInput );
+	  kInput.addEventListener('input', onInput );
+	  wordInput.addEventListener('input', onInput );
+
 	  onInput();
 	  
 	  
